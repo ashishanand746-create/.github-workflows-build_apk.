@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 void main() {
-  runApp(const BMVMSchoolApp());
+  runApp(const BMVMApp());
 }
 
-class BMVMSchoolApp extends StatelessWidget {
-  const BMVMSchoolApp({super.key});
+class BMVMApp extends StatelessWidget {
+  const BMVMApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,547 +15,850 @@ class BMVMSchoolApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1E3A8A), // Classic Royal Navy
+          seedColor: const Color(0xFF1E3A8A),
           primary: const Color(0xFF1E3A8A),
-          secondary: const Color(0xFFD97706), // Warm Amber
+          secondary: const Color(0xFFD97706),
         ),
         scaffoldBackgroundColor: const Color(0xFFF8FAFC),
         cardTheme: CardTheme(
-          elevation: 1.5,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 1,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
       ),
-      home: const MainNavigationScreen(),
+      home: const MainHomeScreen(),
     );
   }
 }
 
-// ---------------------------------------------------------
-// MAIN BOTTOM NAVIGATION CONTROLLER
-// ---------------------------------------------------------
-class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({super.key});
+// -----------------------------------------------------------------------------
+// MAIN CONTROLLER (STATEFUL SHELL)
+// -----------------------------------------------------------------------------
+class MainHomeScreen extends StatefulWidget {
+  const MainHomeScreen({super.key});
 
   @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+  State<MainHomeScreen> createState() => _MainHomeScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 0;
+class _MainHomeScreenState extends State<MainHomeScreen> {
+  int _selectedTabIndex = 0;
 
-  final List<Widget> _screens = const [
-    DashboardScreen(),
-    FeeManagerScreen(),
-    AttendanceScreen(),
-    TimetableScreen(),
-    VacationCalendarScreen(),
+  // Active Dynamic App State
+  final List<Map<String, dynamic>> _feeLedger = [
+    {
+      'month': 'April 2026',
+      'amount': 850,
+      'status': 'Paid',
+      'receipt': 'BMVM-26-0104',
+      'paidOn': '05 Apr 2026',
+    },
+    {
+      'month': 'May 2026',
+      'amount': 850,
+      'status': 'Paid',
+      'receipt': 'BMVM-26-0211',
+      'paidOn': '08 May 2026',
+    },
+    {
+      'month': 'June 2026',
+      'amount': 850,
+      'status': 'Paid',
+      'receipt': 'BMVM-26-0394',
+      'paidOn': '10 Jun 2026',
+    },
+    {
+      'month': 'July 2026',
+      'amount': 850,
+      'status': 'Paid',
+      'receipt': 'BMVM-26-0482',
+      'paidOn': '07 Jul 2026',
+    },
+    {
+      'month': 'August 2026',
+      'amount': 850,
+      'status': 'Paid',
+      'receipt': 'BMVM-26-0590',
+      'paidOn': '06 Aug 2026',
+    },
+    {
+      'month': 'September 2026',
+      'amount': 850,
+      'status': 'Paid',
+      'receipt': 'BMVM-26-0715',
+      'paidOn': '09 Sep 2026',
+    },
+    {
+      'month': 'October 2026',
+      'amount': 850,
+      'status': 'Due',
+      'receipt': '-',
+      'paidOn': '-',
+    },
+    {
+      'month': 'November 2026',
+      'amount': 850,
+      'status': 'Upcoming',
+      'receipt': '-',
+      'paidOn': '-',
+    },
   ];
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _screens[_currentIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Fees'),
-          NavigationDestination(icon: Icon(Icons.fact_check_outlined), selectedIcon: Icon(Icons.fact_check), label: 'Attendance'),
-          NavigationDestination(icon: Icon(Icons.calendar_view_week_outlined), selectedIcon: Icon(Icons.calendar_view_week), label: 'Routine'),
-          NavigationDestination(icon: Icon(Icons.event_note_outlined), selectedIcon: Icon(Icons.event_note), label: 'Holidays'),
-        ],
+  final Map<int, String> _dailyAttendance = {
+    1: 'Present',
+    2: 'Present',
+    3: 'Present',
+    4: 'Sunday',
+    5: 'Present',
+    6: 'Present',
+    7: 'Absent',
+    8: 'Present',
+    9: 'Present',
+    10: 'Present',
+    11: 'Sunday',
+    12: 'Present',
+    13: 'Present',
+    14: 'Present',
+  };
+
+  void _payFee(int index) {
+    setState(() {
+      _feeLedger[index]['status'] = 'Paid';
+      _feeLedger[index]['receipt'] =
+          'BMVM-26-${1000 + DateTime.now().millisecond}';
+      _feeLedger[index]['paidOn'] = 'Today';
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Receipt ${_feeLedger[index]['receipt']} issued for ${_feeLedger[index]['month']}!',
+        ),
+        backgroundColor: Colors.green.shade800,
       ),
     );
   }
-}
 
-// ---------------------------------------------------------
-// 1. DASHBOARD & OVERVIEW SCREEN
-// ---------------------------------------------------------
-class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  void _toggleAttendance(int day) {
+    setState(() {
+      final current = _dailyAttendance[day];
+      if (current == 'Present') {
+        _dailyAttendance[day] = 'Absent';
+      } else if (current == 'Absent') {
+        _dailyAttendance[day] = 'Leave';
+      } else if (current == 'Leave') {
+        _dailyAttendance[day] = 'Present';
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final screens = [
+      _buildHomeDashboard(),
+      _buildFeeModule(),
+      _buildAttendanceModule(),
+      _buildTimetableModule(),
+      _buildCalendarModule(),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E3A8A),
         foregroundColor: Colors.white,
+        elevation: 0,
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Baba Memorial Vidya Mandir', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text('Banmankhi, Ward No. 03, Purnea (Bihar)', style: TextStyle(fontSize: 12, color: Colors.white70)),
+            Text(
+              'Baba Memorial Vidya Mandir',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Ward No. 03, Banmankhi, Purnea (Bihar)',
+              style: TextStyle(fontSize: 11, color: Colors.white70),
+            ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_search),
-            tooltip: 'Teachers & Staff',
+            icon: const Icon(Icons.group),
+            tooltip: 'Faculty List',
             onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherDirectoryScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FacultyDirectoryPage()),
+              );
             },
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Banner Card
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Row(
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.white24,
-                  child: Icon(Icons.school, size: 36, color: Colors.white),
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Welcome Back!', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                      Text('Academic Session 2026-27', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 4),
-                      Text('Affiliated & Recognized School', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+      body: screens[_selectedTabIndex],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedTabIndex,
+        onDestinationSelected: (i) => setState(() => _selectedTabIndex = i),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard),
+            label: 'Home',
           ),
-          const SizedBox(height: 20),
-
-          // Quick Summary Grid
-          const Text('At a Glance', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildSummaryCard(title: 'Attendance', value: '92.4%', subtitle: 'Present', color: Colors.green, icon: Icons.how_to_reg),
-              const SizedBox(width: 12),
-              _buildSummaryCard(title: 'Monthly Fee', value: '₹ 800', subtitle: 'Due for Oct', color: Colors.orange, icon: Icons.currency_rupee),
-            ],
+          NavigationDestination(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            selectedIcon: Icon(Icons.account_balance_wallet),
+            label: 'Fee Card',
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildSummaryCard(title: 'Next Holiday', value: 'Chhath Puja', subtitle: 'Nov Break', color: Colors.purple, icon: Icons.beach_access),
-              const SizedBox(width: 12),
-              _buildSummaryCard(title: 'Teachers', value: '18 Active', subtitle: 'Staff Directory', color: Colors.teal, icon: Icons.people),
-            ],
+          NavigationDestination(
+            icon: Icon(Icons.how_to_reg_outlined),
+            selectedIcon: Icon(Icons.how_to_reg),
+            label: 'Attendance',
           ),
-          const SizedBox(height: 24),
-
-          // School Notice Board
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Notice Board', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              TextButton(onPressed: () {}, child: const Text('View All')),
-            ],
+          NavigationDestination(
+            icon: Icon(Icons.schedule_outlined),
+            selectedIcon: Icon(Icons.schedule),
+            label: 'Timetable',
           ),
-          _buildNoticeCard(
-            title: 'Quarterly Unit Examination Notice',
-            date: '02 Oct 2026',
-            detail: 'Examinations for Classes Nursery to 10th begin from 15th October. Submit admit cards on time.',
-          ),
-          _buildNoticeCard(
-            title: 'School Fee Reminder',
-            date: '28 Sep 2026',
-            detail: 'Please deposit the monthly tuition fee by the 10th of every month at the school counter.',
+          NavigationDestination(
+            icon: Icon(Icons.celebration_outlined),
+            selectedIcon: Icon(Icons.celebration),
+            label: 'Vacation',
           ),
         ],
       ),
     );
   }
 
-  static Widget _buildSummaryCard({
-    required String title,
-    required String value,
-    required String subtitle,
-    required Color color,
-    required IconData icon,
-  }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
+  // ---------------------------------------------------------------------------
+  // 1. DASHBOARD VIEW
+  // ---------------------------------------------------------------------------
+  Widget _buildHomeDashboard() {
+    int totalPresents = _dailyAttendance.values
+        .where((status) => status == 'Present')
+        .length;
+    int totalAbsents = _dailyAttendance.values
+        .where((status) => status == 'Absent')
+        .length;
+    int workingDays = totalPresents + totalAbsents;
+    double percentage = workingDays == 0
+        ? 0.0
+        : (totalPresents / workingDays) * 100;
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Welcome Card
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Row(
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: Colors.white24,
+                child: Icon(Icons.school, color: Colors.white, size: 30),
+              ),
+              SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Session 2026 - 2027',
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Student Portal',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Banmankhi Block • Purnea District',
+                      style: TextStyle(color: Colors.white70, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
+        const SizedBox(height: 18),
+
+        // Live Status Grid
+        const Text(
+          'Quick Overview',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _buildMetricBox(
+                'Attendance',
+                '${percentage.toStringAsFixed(1)}%',
+                '$totalPresents Days Present',
+                Colors.green,
+                Icons.check_circle_outline,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildMetricBox(
+                'October Fee',
+                '₹ 850',
+                'Status: Due',
+                Colors.deepOrange,
+                Icons.payment,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildMetricBox(
+                'Today Timetable',
+                '7 Periods',
+                'Math, Hindi, Science...',
+                Colors.indigo,
+                Icons.class_outlined,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildMetricBox(
+                'Next Holiday',
+                'Durga Puja',
+                'Starting 18 Oct',
+                Colors.teal,
+                Icons.beach_access_outlined,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 22),
+
+        // Official Notice Board
+        const Text(
+          'Notice Board',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        _buildNoticeItem(
+          title: 'Half-Yearly Examination Routine',
+          date: '03 Oct 2026',
+          desc:
+              'The schedule for exams (Classes Nursery to 10th) is published. Obtain clearance slips from the office.',
+        ),
+        _buildNoticeItem(
+          title: 'Monthly Fee Submission Counter',
+          date: '28 Sep 2026',
+          desc:
+              'Parents are requested to clear dues by the 10th of each month at the school office counter, Ward No. 03.',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetricBox(
+    String title,
+    String value,
+    String sub,
+    Color col,
+    IconData icon,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              ),
+              Icon(icon, size: 18, color: col),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: col,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            sub,
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoticeItem({
+    required String title,
+    required String date,
+    required String desc,
+  }) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(title, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-                Icon(icon, color: color, size: 20),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-            const SizedBox(height: 4),
-            Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static Widget _buildNoticeCard({required String title, required String date, required String detail}) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: const CircleAvatar(
-          backgroundColor: Color(0xFFEEF2FF),
-          child: Icon(Icons.campaign, color: Color(0xFF1E3A8A)),
-        ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(detail, style: const TextStyle(fontSize: 12)),
-            const SizedBox(height: 6),
-            Text(date, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------
-// 2. MONTHLY FEE MODULE
-// ---------------------------------------------------------
-class FeeManagerScreen extends StatelessWidget {
-  const FeeManagerScreen({super.key});
-
-  final List<Map<String, dynamic>> feeRecords = const [
-    {'month': 'April 2026', 'amount': 800, 'status': 'Paid', 'receipt': 'BMVM-26-0012', 'date': '08 Apr 2026'},
-    {'month': 'May 2026', 'amount': 800, 'status': 'Paid', 'receipt': 'BMVM-26-0150', 'date': '06 May 2026'},
-    {'month': 'June 2026', 'amount': 800, 'status': 'Paid', 'receipt': 'BMVM-26-0298', 'date': '10 Jun 2026'},
-    {'month': 'July 2026', 'amount': 800, 'status': 'Paid', 'receipt': 'BMVM-26-0421', 'date': '05 Jul 2026'},
-    {'month': 'August 2026', 'amount': 800, 'status': 'Paid', 'receipt': 'BMVM-26-0567', 'date': '09 Aug 2026'},
-    {'month': 'September 2026', 'amount': 800, 'status': 'Paid', 'receipt': 'BMVM-26-0702', 'date': '07 Sep 2026'},
-    {'month': 'October 2026', 'amount': 800, 'status': 'Due', 'receipt': '-', 'date': '-'},
-    {'month': 'November 2026', 'amount': 800, 'status': 'Upcoming', 'receipt': '-', 'date': '-'},
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Monthly Fee Ledger'),
-        backgroundColor: const Color(0xFF1E3A8A),
-        foregroundColor: Colors.white,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Outstanding Card
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.amber.shade50,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.amber.shade300),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.orange, size: 36),
-                const SizedBox(width: 16),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Current Outstanding', style: TextStyle(fontSize: 13, color: Colors.brown)),
-                      Text('₹ 800 (October 2026)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black80)),
-                      Text('Due date: 15th October 2026', style: TextStyle(fontSize: 12, color: Colors.brown)),
-                    ],
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Payment counter open at school office, Ward No. 03')),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E3A8A), foregroundColor: Colors.white),
-                  child: const Text('Pay'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text('Fee Payment History', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-
-          ...feeRecords.map((record) {
-            final isPaid = record['status'] == 'Paid';
-            final isDue = record['status'] == 'Due';
-
-            return Card(
-              margin: const EdgeInsets.only(bottom: 10),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: isPaid ? Colors.green.shade50 : (isDue ? Colors.red.shade50 : Colors.grey.shade100),
-                  child: Icon(
-                    isPaid ? Icons.check_circle : (isDue ? Icons.schedule : Icons.calendar_today),
-                    color: isPaid ? Colors.green : (isDue ? Colors.red : Colors.grey),
-                  ),
-                ),
-                title: Text(record['month'], style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text('Amount: ₹${record['amount']} • Receipt: ${record['receipt']}'),
-                trailing: Chip(
-                  label: Text(record['status'], style: TextStyle(color: isPaid ? Colors.green.shade800 : (isDue ? Colors.red.shade800 : Colors.black54), fontSize: 11)),
-                  backgroundColor: isPaid ? Colors.green.shade50 : (isDue ? Colors.red.shade50 : Colors.grey.shade200),
-                ),
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------
-// 3. ATTENDANCE MODULE
-// ---------------------------------------------------------
-class AttendanceScreen extends StatefulWidget {
-  const AttendanceScreen({super.key});
-
-  @override
-  State<AttendanceScreen> createState() => _AttendanceScreenState();
-}
-
-class _AttendanceScreenState extends State<AttendanceScreen> {
-  // Sample October 2026 data
-  final Map<int, String> _attendanceMap = {
-    1: 'Present', 2: 'Present', 3: 'Present', 4: 'Holiday',
-    5: 'Present', 6: 'Present', 7: 'Absent', 8: 'Present',
-    9: 'Present', 10: 'Present', 11: 'Holiday',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Attendance Record'),
-        backgroundColor: const Color(0xFF1E3A8A),
-        foregroundColor: Colors.white,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Top Statistics
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _metricTile('Total Working', '24 Days'),
-                  _metricTile('Present', '22 Days', color: Colors.green),
-                  _metricTile('Absent', '2 Days', color: Colors.red),
-                  _metricTile('Percentage', '91.6%', color: const Color(0xFF1E3A8A)),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          const Text('October 2026 - Daily Attendance', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-
-          // Daily Attendance Table
-          Card(
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 10,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final day = index + 1;
-                final status = _attendanceMap[day] ?? 'Present';
-                final dateStr = '2026-10-${day.toString().padLeft(2, '0')}';
-
-                Color statusColor = Colors.green;
-                if (status == 'Absent') statusColor = Colors.red;
-                if (status == 'Holiday') statusColor = Colors.grey;
-
-                return ListTile(
-                  dense: true,
-                  leading: Text('$day Oct', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  title: Text(DateFormat('EEEE').format(DateTime.parse(dateStr))),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
                     ),
-                    child: Text(status, style: TextStyle(color: statusColor, fontWeight: FontWeight.w600, fontSize: 12)),
                   ),
-                );
-              },
+                ),
+                Text(
+                  date,
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              desc,
+              style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  static Widget _metricTile(String label, String value, {Color color = Colors.black80}) {
-    return Column(
+  // ---------------------------------------------------------------------------
+  // 2. FEE MANAGEMENT VIEW
+  // ---------------------------------------------------------------------------
+  Widget _buildFeeModule() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
       children: [
-        Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
-        const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF3C7),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFFDE68A)),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.info_outline, color: Color(0xFFD97706)),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Monthly tuition fee is ₹ 850. Pay via counter or simulate immediate confirmation below.',
+                  style: TextStyle(color: Color(0xFF92400E), fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Academic Fee Card (2026)',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        ..._feeLedger.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final item = entry.value;
+          final isPaid = item['status'] == 'Paid';
+          final isDue = item['status'] == 'Due';
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 6,
+              ),
+              title: Text(
+                item['month'],
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              subtitle: Text(
+                'Amount: ₹${item['amount']} • Paid: ${item['paidOn']}\nReceipt: ${item['receipt']}',
+                style: const TextStyle(fontSize: 12),
+              ),
+              isThreeLine: true,
+              trailing: isDue
+                  ? ElevatedButton(
+                      onPressed: () => _payFee(idx),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E3A8A),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                      ),
+                      child: const Text('Pay Now'),
+                    )
+                  : Chip(
+                      label: Text(
+                        item['status'],
+                        style: TextStyle(
+                          color: isPaid ? Colors.green.shade800 : Colors.grey,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      backgroundColor: isPaid
+                          ? Colors.green.shade50
+                          : Colors.grey.shade100,
+                    ),
+            ),
+          );
+        }),
       ],
     );
   }
-}
 
-// ---------------------------------------------------------
-// 4. TIMETABLE / DAILY ROUTINE
-// ---------------------------------------------------------
-class TimetableScreen extends StatelessWidget {
-  const TimetableScreen({super.key});
+  // ---------------------------------------------------------------------------
+  // 3. ATTENDANCE VIEW
+  // ---------------------------------------------------------------------------
+  Widget _buildAttendanceModule() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _LegendItem(color: Colors.green, label: 'Present'),
+              _LegendItem(color: Colors.red, label: 'Absent'),
+              _LegendItem(color: Colors.amber, label: 'Leave'),
+              _LegendItem(color: Colors.grey, label: 'Sunday'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'October 2026 Daily Roll (Tap to change status)',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _dailyAttendance.length,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (context, i) {
+              final day = i + 1;
+              final status = _dailyAttendance[day] ?? 'Present';
 
-  final List<Map<String, String>> schedule = const [
-    {'time': '09:00 AM - 09:30 AM', 'subject': 'Morning Prayer & Assembly', 'teacher': 'All Staff'},
-    {'time': '09:30 AM - 10:15 AM', 'subject': 'Mathematics', 'teacher': 'R. K. Verma'},
-    {'time': '10:15 AM - 11:00 AM', 'subject': 'Hindi Sahitya & Vyakaran', 'teacher': 'S. N. Jha'},
-    {'time': '11:00 AM - 11:45 AM', 'subject': 'English Grammar & Reader', 'teacher': 'P. Kumari'},
-    {'time': '11:45 AM - 12:15 PM', 'subject': 'Tiffin / Recess Break', 'teacher': '-'},
-    {'time': '12:15 PM - 01:00 PM', 'subject': 'Social Science (SST)', 'teacher': 'M. K. Singh'},
-    {'time': '01:00 PM - 01:45 PM', 'subject': 'General Science', 'teacher': 'B. Prasad'},
-    {'time': '01:45 PM - 02:30 PM', 'subject': 'Sanskrit / Drawing', 'teacher': 'A. Roy'},
-  ];
+              Color tagColor = Colors.green;
+              if (status == 'Absent') tagColor = Colors.red;
+              if (status == 'Leave') tagColor = Colors.amber.shade800;
+              if (status == 'Sunday') tagColor = Colors.grey;
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Class Timetable (Class 5th - A)'),
-        backgroundColor: const Color(0xFF1E3A8A),
-        foregroundColor: Colors.white,
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: schedule.length,
-        itemBuilder: (context, index) {
-          final item = schedule[index];
-          final isBreak = item['teacher'] == '-';
-
-          return Card(
-            color: isBreak ? const Color(0xFFFFFBEB) : Colors.white,
-            margin: const EdgeInsets.only(bottom: 12),
-            child: ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isBreak ? Colors.amber.shade100 : const Color(0xFFEEF2FF),
-                  borderRadius: BorderRadius.circular(10),
+              return ListTile(
+                dense: true,
+                onTap: status == 'Sunday' ? null : () => _toggleAttendance(day),
+                leading: Text(
+                  'Day $day',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                child: Icon(
-                  isBreak ? Icons.restaurant : Icons.menu_book,
-                  color: isBreak ? Colors.amber.shade800 : const Color(0xFF1E3A8A),
+                title: Text('$day October 2026'),
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: tagColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    status,
+                    style: TextStyle(
+                      color: tagColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 4. TIMETABLE VIEW
+  // ---------------------------------------------------------------------------
+  Widget _buildTimetableModule() {
+    final List<Map<String, String>> periods = [
+      {
+        'period': 'Assembly',
+        'time': '09:00 - 09:30 AM',
+        'sub': 'Morning Prayer & Pledge',
+        'teacher': 'All Teachers',
+      },
+      {
+        'period': 'Period 1',
+        'time': '09:30 - 10:15 AM',
+        'sub': 'Mathematics',
+        'teacher': 'Sri R. K. Verma',
+      },
+      {
+        'period': 'Period 2',
+        'time': '10:15 - 11:00 AM',
+        'sub': 'Hindi Grammar & Reader',
+        'teacher': 'Sri S. N. Jha',
+      },
+      {
+        'period': 'Period 3',
+        'time': '11:00 - 11:45 AM',
+        'sub': 'English Communication',
+        'teacher': 'Smt. P. Kumari',
+      },
+      {
+        'period': 'Tiffin',
+        'time': '11:45 - 12:15 PM',
+        'sub': 'Lunch & Recess Break',
+        'teacher': 'Discipline In-charge',
+      },
+      {
+        'period': 'Period 4',
+        'time': '12:15 - 01:00 PM',
+        'sub': 'Social Studies (SST)',
+        'teacher': 'Sri M. K. Singh',
+      },
+      {
+        'period': 'Period 5',
+        'time': '01:00 - 01:45 PM',
+        'sub': 'General Science',
+        'teacher': 'Sri B. Prasad',
+      },
+      {
+        'period': 'Period 6',
+        'time': '01:45 - 02:30 PM',
+        'sub': 'Sanskrit / Art & Drawing',
+        'teacher': 'Smt. A. Roy',
+      },
+    ];
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: periods.length,
+      itemBuilder: (context, index) {
+        final p = periods[index];
+        final isBreak = p['period'] == 'Tiffin';
+
+        return Card(
+          color: isBreak ? const Color(0xFFFFFBEB) : Colors.white,
+          margin: const EdgeInsets.only(bottom: 10),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: isBreak
+                  ? Colors.amber.shade100
+                  : const Color(0xFFEEF2FF),
+              child: Icon(
+                isBreak ? Icons.flatware : Icons.menu_book,
+                color: isBreak
+                    ? Colors.amber.shade800
+                    : const Color(0xFF1E3A8A),
               ),
-              title: Text(item['subject']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              subtitle: Text('Teacher: ${item['teacher']}', style: const TextStyle(fontSize: 12)),
-              trailing: Text(item['time']!, style: TextStyle(color: Colors.grey.shade600, fontSize: 11, fontWeight: FontWeight.w500)),
             ),
-          );
-        },
-      ),
+            title: Text(
+              p['sub']!,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            subtitle: Text(
+              'Teacher: ${p['teacher']}',
+              style: const TextStyle(fontSize: 12),
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  p['period']!,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  p['time']!,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 5. VACATION CALENDAR VIEW
+  // ---------------------------------------------------------------------------
+  Widget _buildCalendarModule() {
+    final List<Map<String, String>> holidays = [
+      {
+        'title': 'Gandhi Jayanti',
+        'date': '02 October 2026',
+        'desc': 'National Holiday',
+      },
+      {
+        'title': 'Durga Puja Vacation',
+        'date': '18 - 23 October 2026',
+        'desc': 'Maha Saptami to Vijaya Dashami Break',
+      },
+      {
+        'title': 'Deepawali',
+        'date': '08 November 2026',
+        'desc': 'Festival of Lights',
+      },
+      {
+        'title': 'Chhath Puja Holidays',
+        'date': '14 - 17 November 2026',
+        'desc': 'Surya Shasthi Mahaparv',
+      },
+      {
+        'title': 'Winter Recess',
+        'date': '25 Dec - 02 Jan 2027',
+        'desc': 'Cold Wave & New Year Holiday',
+      },
+      {
+        'title': 'Republic Day',
+        'date': '26 January 2027',
+        'desc': 'National Flag Hoisting at School Campus',
+      },
+      {
+        'title': 'Saraswati Puja',
+        'date': '11 February 2027',
+        'desc': 'Basant Panchami Celebration',
+      },
+      {
+        'title': 'Holi Holidays',
+        'date': '22 - 25 March 2027',
+        'desc': 'Festival of Colors Break',
+      },
+    ];
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: holidays.length,
+      itemBuilder: (context, index) {
+        final h = holidays[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 10),
+          child: ListTile(
+            leading: const CircleAvatar(
+              backgroundColor: Color(0xFFFEF3C7),
+              child: Icon(Icons.event_available, color: Color(0xFFD97706)),
+            ),
+            title: Text(
+              h['title']!,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            subtitle: Text(h['desc']!, style: const TextStyle(fontSize: 12)),
+            trailing: Text(
+              h['date']!,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Color(0xFF1E3A8A),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
 
-// ---------------------------------------------------------
-// 5. VACATION & HOLIDAY CALENDAR
-// ---------------------------------------------------------
-class VacationCalendarScreen extends StatelessWidget {
-  const VacationCalendarScreen({super.key});
-
-  final List<Map<String, String>> holidays = const [
-    {'name': 'Gandhi Jayanti', 'date': '02 October 2026', 'day': 'Friday', 'type': 'National Holiday'},
-    {'name': 'Durga Puja (Maha Ashtami - Dashami)', 'date': '18 - 22 Oct 2026', 'day': 'Sun - Thu', 'type': 'Festival Break'},
-    {'name': 'Deepawali', 'date': '08 November 2026', 'day': 'Sunday', 'type': 'Festival Holiday'},
-    {'name': 'Chhath Puja Vacation', 'date': '14 - 17 Nov 2026', 'day': 'Sat - Tue', 'type': 'State Festival'},
-    {'name': 'Winter Vacation', 'date': '25 Dec - 02 Jan 2027', 'day': 'Seasonal', 'type': 'School Recess'},
-    {'name': 'Republic Day', 'date': '26 January 2027', 'day': 'Tuesday', 'type': 'National Holiday'},
-    {'name': 'Saraswati Puja', 'date': '11 February 2027', 'day': 'Thursday', 'type': 'School Celebration'},
-    {'name': 'Holi Holidays', 'date': '22 - 25 March 2027', 'day': 'Mon - Thu', 'type': 'Festival Break'},
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Vacation & Holiday Calendar'),
-        backgroundColor: const Color(0xFF1E3A8A),
-        foregroundColor: Colors.white,
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: holidays.length,
-        itemBuilder: (context, index) {
-          final h = holidays[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Color(0xFFFEF3C7),
-                child: Icon(Icons.event_available, color: Color(0xFFD97706)),
-              ),
-              title: Text(h['name']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              subtitle: Text('${h['day']} • ${h['type']}', style: const TextStyle(fontSize: 12)),
-              trailing: Text(h['date']!, style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600, fontSize: 12)),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------
-// 6. TEACHER & STAFF DIRECTORY
-// ---------------------------------------------------------
-class TeacherDirectoryScreen extends StatelessWidget {
-  const TeacherDirectoryScreen({super.key});
+// -----------------------------------------------------------------------------
+// FACULTY / TEACHER DIRECTORY PAGE
+// -----------------------------------------------------------------------------
+class FacultyDirectoryPage extends StatelessWidget {
+  const FacultyDirectoryPage({super.key});
 
   final List<Map<String, String>> teachers = const [
-    {'name': 'Sri R. K. Verma', 'role': 'Headmaster / Math', 'phone': '+91 98765 43210'},
-    {'name': 'Sri S. N. Jha', 'role': 'Senior Teacher / Hindi', 'phone': '+91 98765 43211'},
-    {'name': 'Smt. P. Kumari', 'role': 'Asst. Teacher / English', 'phone': '+91 98765 43212'},
-    {'name': 'Sri M. K. Singh', 'role': 'Social Science Specialist', 'phone': '+91 98765 43213'},
-    {'name': 'Sri B. Prasad', 'role': 'Science & EVS', 'phone': '+91 98765 43214'},
-    {'name': 'Smt. A. Roy', 'role': 'Sanskrit & Arts', 'phone': '+91 98765 43215'},
+    {
+      'name': 'Sri R. K. Verma',
+      'role': 'Headmaster & Mathematics',
+      'contact': '+91 98765 43210',
+    },
+    {
+      'name': 'Sri S. N. Jha',
+      'role': 'Hindi Sahitya & Vyakaran',
+      'contact': '+91 98765 43211',
+    },
+    {
+      'name': 'Smt. P. Kumari',
+      'role': 'English Language & Reading',
+      'contact': '+91 98765 43212',
+    },
+    {
+      'name': 'Sri M. K. Singh',
+      'role': 'Social Sciences (History/Civics)',
+      'contact': '+91 98765 43213',
+    },
+    {
+      'name': 'Sri B. Prasad',
+      'role': 'Science & Environmental Studies',
+      'contact': '+91 98765 43214',
+    },
+    {
+      'name': 'Smt. A. Roy',
+      'role': 'Sanskrit & Creative Arts',
+      'contact': '+91 98765 43215',
+    },
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Teachers & Faculty'),
+        title: const Text('Faculty & Staff Directory'),
         backgroundColor: const Color(0xFF1E3A8A),
         foregroundColor: Colors.white,
       ),
@@ -566,20 +868,24 @@ class TeacherDirectoryScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           final t = teachers[index];
           return Card(
-            margin: const EdgeInsets.only(bottom: 12),
+            margin: const EdgeInsets.only(bottom: 10),
             child: ListTile(
               leading: CircleAvatar(
                 backgroundColor: const Color(0xFF1E3A8A),
                 foregroundColor: Colors.white,
                 child: Text(t['name']!.split(' ').last[0]),
               ),
-              title: Text(t['name']!, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text(t['role']!),
+              title: Text(
+                t['name']!,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text('${t['role']}\nPhone: ${t['contact']}'),
+              isThreeLine: true,
               trailing: IconButton(
-                icon: const Icon(Icons.call, color: Colors.green),
+                icon: const Icon(Icons.phone, color: Colors.green),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Contacting ${t['name']} at ${t['phone']}')),
+                    SnackBar(content: Text('Dialing ${t['contact']}...')),
                   );
                 },
               ),
@@ -587,6 +893,30 @@ class TeacherDirectoryScreen extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _LegendItem({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+        ),
+      ],
     );
   }
 }
